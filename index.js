@@ -1,7 +1,10 @@
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 const Telegraf = require('telegraf');
+const express = require('express');
 
+const server = express();
+const port = process.env.NODE_PORT || 3000;
 const TELEGRAM_API = process.env.TELEGRAM_API;
 
 const app = new Telegraf(TELEGRAM_API);
@@ -96,3 +99,19 @@ app.on('message', ({reply, message: {text}}) => {
 
 
 app.startPolling();
+
+server.get('/search', ({query: {query}}, res) => {
+    search(query)
+    .then((track) => {
+      res.json(track);
+    })
+    .catch((error) => {
+      console.log(error);
+      res.json({status: 400, message: error.message || 'not found'});
+    });
+
+});
+
+server.listen(port, () => {
+  console.log(`server started http://localhost:${port}`);
+});
