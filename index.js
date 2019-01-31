@@ -23,7 +23,6 @@ function scrape(search) {
     }, 10000);
     puppeteer.launch({
       headless: true,
-      executablePath: 'google-chrome-unstable',
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     })
       .then((_browser) => {
@@ -33,9 +32,10 @@ function scrape(search) {
       .then((page) => {
         let content = null;
         page.on('request', (request) => {
-          if (request.url.includes('get-mp3') || request.url.includes('/get/')) {
+          const url = request.url();
+          if (url.includes('get-mp3') || url.includes('/get/')) {
             send = true;
-            track_url = request.url;
+            track_url = url;
             resolve({content, track_url});
             browser.close();
           }
@@ -46,10 +46,11 @@ function scrape(search) {
           .then(() => page.content())
           .then((_content) => {
             content = cheerio.load(_content);
-            return Promise.resolve();
+            return page.evaluate(() => document.querySelector('div.d-track.typo-track:first-child').click());
           })
-          .then(() => page.click('.d-track.typo-track'))
-          .then(() => page.click('button.button-play'));
+          .then(() => page.evaluate(() => document.querySelector('div.d-track.typo-track:first-child .d-track__play').style.display = 'block'))
+          .then(() => page.evaluate(() => document.querySelector('button.button_round.button_action.button-play').click()))
+          .then(() => page.bringToFront());
       })
       .catch((error) => {
         if (browser) {
